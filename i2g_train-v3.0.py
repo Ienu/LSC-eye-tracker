@@ -92,6 +92,10 @@ patch = 100
 print(sys.argv[1])
 f = np.load(sys.argv[1])
 
+# TODO: For those data exceed memory, model.train_on_batch(x, y)
+# n model.test_on_batch(x, y), or use model.fit_generator(data_generator,
+# steps_per_epoch, epochs)
+
 x = np.array(f['faceData'])
 y = np.array(f['eyeTrackData'])
 
@@ -170,19 +174,27 @@ model.add(Reshape((scale, scale, 3)))
 #model.summary()
 
 # train
+# TODO: sgd has a momentum param, maybe useful
 opt = keras.optimizers.rmsprop(lr=0.001, decay=0.0001)
-# loss function form should be considered
+# TODO: loss function form should be considered
+# TODO: acc can be manually set
 model.compile(loss='mse', optimizer=opt, metrics=['accuracy'])
 
 # TODO: save model every 100 epochs
 for ep in range(patch, epochs, patch):
     print('Epoch %d' % ep)
-    model.fit(x, y,
+    # TODO: consider EarlyStopping
+    ##  from keras.callbacks import EarlyStopping
+    ##  early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+    ##  model.fit(x, y, validation_split=0.2, callbacks=[early_stopping])
+    hist = model.fit(x, y,
               batch_size=batch_size,
               epochs=patch,
               verbose=1,
-              shuffle=True)#,
+              shuffle=True,
+              validation_splite=0.1)#, HAVEN'T BEEN TESTED YET
               #callbacks=[history])
+    print(hist.history)# HAVEN'T BEEN TESTED YET
     scores = model.evaluate(x, y, verbose=1)
     print('Test loss:', scores[0], scores[1])
     model.save('model_%s_%d.h5' % (name, ep))
