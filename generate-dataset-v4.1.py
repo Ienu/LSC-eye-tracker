@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import cv2
-import time
-import os
-
 '''
     Author: Wenyu
     Date: 2/11/2019
@@ -14,6 +9,10 @@ import os
     Then for our model test
     v4.1: use function to structured
 '''
+import numpy as np
+import cv2
+import time
+import os
 
 # TODO: license required
 
@@ -54,8 +53,8 @@ def main():
     face_size = 224
 
     # The width and height values are recorded in the calibration data .mat
-    width = 1280
-    height = 800
+    width = 1440
+    height = 900
 
     file_name = 'p01.txt'
 
