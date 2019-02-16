@@ -77,7 +77,7 @@ class LossHistory(keras.callbacks.Callback):
         plt.savefig('%(name)d.png'%{'name': name})
 
 
-def create_model():
+def create_model(x, scale):
     """
         model
     """
@@ -199,7 +199,7 @@ def main():
     if len(sys.argv) == 4:
         model = load_model(sys.argv[3])
     else:    
-        model = create_model()
+        model = create_model(x, scale)
 
     # train
     opt = keras.optimizers.rmsprop(lr=0.001, decay=0.0001)
