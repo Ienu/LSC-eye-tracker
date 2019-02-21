@@ -34,6 +34,6 @@
 （Appearance-Based Gaze Estimation in the Wild https://ieeexplore.ieee.org/document/7299081 (Xucong Zhang et al.)，MPIIFaceGaze，角度误差）
 
 2. 2019/2/25 – 2019/3/3 在时间同步基础上开始大样本数据采集（固定摄像头和显示器的相对位置（这样可以切换场景，也可考虑先尝试独立场景）），使用反卷积等对其它层（全部）进行分析，在其他数据集上验证模型并对比他人论文指标
-（Eye Tracking for Everyone (Kyle Krafka et al.)，GazeCapture，角度误差，长度误差）
+（Eye Tracking for Everyone https://arxiv.org/abs/1606.05814 (Kyle Krafka et al.)，GazeCapture，角度误差，长度误差）
 
 3. 2019/3/4 - 2019/3/10 
