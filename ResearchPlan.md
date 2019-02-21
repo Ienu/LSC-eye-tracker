@@ -29,7 +29,9 @@
 
 ### 时间规划：（每周迭代向后制定一周计划）
 1. 2019/2/18 -- 2019/2/28 解决目前存在的同步问题，通过可视化等手段进行验证，使用反卷积等对第一层CNN进行分析，在其他数据集上验证模型并对比他人论文指标
+
 （Appearance-Based Gaze Estimation in the Wild https://ieeexplore.ieee.org/document/7299081 (Xucong Zhang et al.)，MPIIFaceGaze，角度误差）
+
 （Visualizing and Understanding Convolutional Networks https://arxiv.org/abs/1311.2901v3 (Matthew D Zeiler et al.)）
 
 #### TODO:
