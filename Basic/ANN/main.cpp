@@ -1,11 +1,12 @@
 /*
 	Author: Wenyu
-	Date: 2/23/2019
-	Version: 1.0
-	Env: Opencv 3.4 vc14, VS2015 Release x64, "gazeEstimate.h"
+	Date: 2/24/2019
+	Version: 1.1
+	Env: Opencv 3.4 vc14, VS2015 Release x64, "gazeEstimate.h", "gazeEstimate.cpp"
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
 		as a demo
+	v1.1: add mat release
 */
 
 #include <iostream>
@@ -60,5 +61,7 @@ int main() {
 	// save model
 	gE.save("test.xml");
 
+	MD.release();
+	pre.release();
 	return 0;
 }
