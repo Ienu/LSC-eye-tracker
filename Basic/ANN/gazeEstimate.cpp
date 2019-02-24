@@ -101,6 +101,7 @@ float GazeEst::predict(const Mat& testInputs, Mat& testOutputs, const Mat& testL
 		Mat testError;
 		absdiff(testOutputs, testLabels, testError);
 		Scalar s = mean(testError);
+		testError.release();
 		return float(s[0]);
 	}
 	else {
