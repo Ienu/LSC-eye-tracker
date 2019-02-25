@@ -1,17 +1,23 @@
 /*
 	Author: Wenyu
-	Date: 2/24/2019
-	Version: 1.1
+	Date: 2/25/2019
+	Version: 1.2
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
 	v1.1: add mat release, split cpp file, add destructor
+	v1.2: add static shuffle function for data preprocessing, add time consumption
+		analysis, change the model
 */
 
 #include "gazeEstimate.h"
 
-GazeEst::GazeEst() {
+#include <ctime>
+#include <cmath>
 
+GazeEst::GazeEst() {
+	m_train_time = -1;
+	m_pre_time = -1;
 }
 
 GazeEst::~GazeEst() {
@@ -19,13 +25,15 @@ GazeEst::~GazeEst() {
 }
 
 void GazeEst::create() {
-	int N = 4;
-	Mat layerSizes = (Mat_<int>(1, N) << 12, 25, 25, 2);
+	int N = 5;
+	Mat layerSizes = (Mat_<int>(1, N) << 12, 50, 25, 12, 2);
 	m_network = ANN_MLP::create();
 	m_network->setLayerSizes(layerSizes);
 	m_network->setActivationFunction(ANN_MLP::SIGMOID_SYM, 1, 1);
-	m_network->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 10000, FLT_EPSILON));
-	m_network->setTrainMethod(ANN_MLP::BACKPROP, 0.001, 0.00001);
+	m_network->setTermCriteria(
+		TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 
+			50000, 1e-8f/*FLT_EPSILON*/));
+	m_network->setTrainMethod(ANN_MLP::BACKPROP, 0.001, 0.001);
 }
 
 float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs) {
@@ -47,7 +55,10 @@ float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs) {
 		trainData,
 		ROW_SAMPLE,
 		trainLabel);
+
+	time_t t_start = clock();
 	m_network->train(tD);
+	m_train_time = double(clock() - t_start) / CLOCKS_PER_SEC;
 
 	// test
 	Mat trainPredicts = Mat_<float>(trainInputs.rows, 2);
@@ -62,6 +73,10 @@ float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs) {
 	trainData.release();
 	trainLabel.release();
 	return float(s[0]);
+}
+
+double GazeEst::getTrainTime() {
+	return m_train_time;
 }
 
 void GazeEst::load(const char* fileName) {
@@ -83,7 +98,11 @@ float GazeEst::predict(const Mat& testInputs, Mat& testOutputs, const Mat& testL
 	}
 	// predict
 	Mat predictLabel;
+
+	time_t t_start = clock();
 	m_network->predict(testData, predictLabel);
+	m_pre_time = double(clock() - t_start) / CLOCKS_PER_SEC / testData.rows;
+
 	// rescale outputs
 	for (int i = 0; i < testInputs.rows; ++i) {
 		for (int j = 0; j < 2; ++j) {
@@ -105,6 +124,42 @@ float GazeEst::predict(const Mat& testInputs, Mat& testOutputs, const Mat& testL
 		return float(s[0]);
 	}
 	else {
-		return 0;
+		return -1;
 	}
+}
+
+double GazeEst::getTestTime() {
+	return m_pre_time;
+}
+
+void GazeEst::shuffle(const Mat& src, Mat& dst) {
+	// index not exceed 65535
+	int n = src.rows;
+	Mat l_dst= Mat_<float>(src.rows, src.cols);
+
+	srand(time(NULL));
+	int* sIdx = new int[n];
+
+	// init sequence
+	for (int i = 0; i < n; ++i) {
+		sIdx[i] = i;
+	}
+
+	// shuffle sequence index
+	for (int j = 0; j < n; j++) {
+		int r = rand() % (n - j);
+		int tp = sIdx[r];
+		sIdx[r] = sIdx[n - j - 1];
+		sIdx[n - j - 1] = tp;
+	}
+
+	// reorder the data
+	for (int k = 0; k < n; ++k) {
+		for (int l = 0; l < src.cols; ++l) {
+			l_dst.at<float>(k, l) = src.at<float>(sIdx[k], l);
+		}
+	}
+	dst = l_dst.clone();
+	l_dst.release();
+	delete[] sIdx;
 }
