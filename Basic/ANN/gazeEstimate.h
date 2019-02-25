@@ -1,11 +1,13 @@
 /*
 	Author: Wenyu
-	Date: 2/24/2019
-	Version: 1.1
+	Date: 2/25/2019
+	Version: 1.2
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
 	v1.1: add mat release, split cpp file, add destructor
+	v1.2: add static shuffle function for data preprocessing, add time consumption
+		analysis, change the model
 */
 
 #pragma once
@@ -31,6 +33,9 @@ private:
 	};
 	const vector<float> y_scale = { 1920, 1080 };
 
+	double m_train_time;
+	double m_pre_time;
+
 public:
 	GazeEst();
 
@@ -41,6 +46,7 @@ public:
 
 	// train model
 	float train(const Mat&, const Mat&);
+	double getTrainTime();
 
 	// load model
 	void load(const char*);
@@ -50,4 +56,8 @@ public:
 
 	// predict gaze point
 	float predict(const Mat&, Mat&, const Mat& = Mat());
+	double getTestTime();
+
+	// shuffle data
+	static void shuffle(const Mat&, Mat&);
 };
