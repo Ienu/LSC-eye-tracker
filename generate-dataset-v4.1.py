@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 '''
     Author: Wenyu
-    Date: 2/11/2019
-    Version: 4.1
+    Date: 2/16/2019
+    Version: 4.2
     
     Function:
     v4.0: This script tries to process MPIIFaceGaze data into npz
     Then for our model test
     v4.1: use function to structured
+    v4.2: shuffle the dataset
 '''
 import numpy as np
 import cv2
@@ -57,7 +58,9 @@ def main():
     print('################################################################')
 
     # TODO: implement input argument like argv[1] with default value
+
     save_name = 'data_MPIIFaceGaze_p00_test.npz'
+
 
     face_size = 224
 
@@ -80,7 +83,7 @@ def main():
     face_data = np.zeros([amount, face_size, face_size, 3], dtype='uint8')
     # this generates a mapping tensor for regression from the original
     # tensor region size
-    scale = 7
+    scale = 13
     # dim-4 indicates (x, y, p) 
     eye_track_data = np.zeros([amount, scale, scale, 3], dtype='float32')
 
@@ -108,11 +111,16 @@ def main():
 
             print('No. {} {}'.format(index, vector[:3]))
             index += 1
+
+    # shuffle the dataset
+    permutation = np.random.permutation(amount)
+    shuffled_face_data = face_data[permutation, :, :, :]
+    shuffled_eye_track_data = eye_track_data[permutation, :, :, :]
           
     # TODO: a data info field should be saved within        
     np.savez_compressed(save_name,
-                        faceData=face_data,
-                        eyeTrackData=eye_track_data)
+                        faceData=shuffled_face_data,
+                        eyeTrackData=shuffled_eye_track_data)
 
     print(time.time() - t_start)
 
