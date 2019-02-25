@@ -13,7 +13,6 @@ import numpy as np
 import cv2
 import time
 import os
-import sys
 
 # TODO: license required
 
@@ -49,7 +48,7 @@ def main():
     """
 
     # change current dir to dataset folder
-    dataset_folder = sys.argv[1]
+    dataset_folder = argv[1]
     os.chdir(dataset_folder)
     # Warning
     print('################################################################')
@@ -110,8 +109,7 @@ def main():
             print('No. {} {}'.format(index, vector[:3]))
             index += 1
           
-    # TODO: a data info field should be saved within   
-    # .npz file was saved in data folder     
+    # TODO: a data info field should be saved within        
     np.savez_compressed(save_name,
                         faceData=face_data,
                         eyeTrackData=eye_track_data)
