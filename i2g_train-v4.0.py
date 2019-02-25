@@ -23,6 +23,7 @@ from keras.layers.advanced_activations import LeakyReLU
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
+from keras.callbacks import TensorBoard
 
 import matplotlib.pyplot as plt
 
@@ -192,6 +193,14 @@ def main():
     amount = x.shape[0]
     print('Sample amount: ', amount)
 
+    # Using tensorboard to visualize training process
+    tensorboard = TensorBoard(
+        log_dir='./LOG_DIR', histogram_freq=0, batch_size=64, write_graph=True, 
+        write_grads=False, write_images=False, embeddings_freq=0, 
+        embeddings_layer_names=None, embeddings_metadata=None
+        )
+
+
     # model
     # TODO: a pretrain needs to be considered on ImageNet or some datasets else
     # or init the params with existing ImageNet's weights
@@ -214,8 +223,8 @@ def main():
                   batch_size=batch_size,
                   epochs=patch,
                   verbose=1,
-                  shuffle=True)#,
-                  #callbacks=[history])
+                  shuffle=True,#,
+                  callbacks=[tensorboard])
         scores = model.evaluate(x[int(amount*9/10)+1:,], 
                                 y[int(amount*9/10)+1:,],
                                 verbose=1)

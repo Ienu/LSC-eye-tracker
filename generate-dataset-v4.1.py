@@ -13,6 +13,7 @@ import numpy as np
 import cv2
 import time
 import os
+import sys
 
 # TODO: license required
 
@@ -42,21 +43,32 @@ def generate_gaze_tensor(gaze_point, width, height, scale):
 
 
 def main():
+    """
+        main function
+        argv[1]: dataset folder (eg: ./p00)
+    """
+
+    # change current dir to dataset folder
+    dataset_folder = sys.argv[1]
+    os.chdir(dataset_folder)
     # Warning
     print('################################################################')
     print('# WARNING: The Code Should Be Tested On A Small Dataset First! #')
+    print('#            THIS code should run in dataset folder!           #')
     print('################################################################')
 
     # TODO: implement input argument like argv[1] with default value
-    save_name = 'data_MPIIFaceGaze_p01_test.npz'
+    save_name = 'data_MPIIFaceGaze_p00_test.npz'
 
     face_size = 224
 
     # The width and height values are recorded in the calibration data .mat
-    width = 1440
-    height = 900
+    # p00: 1280x800
+    width = 1280
+    height = 800
 
-    file_name = 'p01.txt'
+    # Change the file_name to use images of different people
+    file_name = 'p00.txt'
 
     amount = 0
     for index, line in enumerate(open(file_name,'r')):
@@ -98,7 +110,8 @@ def main():
             print('No. {} {}'.format(index, vector[:3]))
             index += 1
           
-    # TODO: a data info field should be saved within        
+    # TODO: a data info field should be saved within   
+    # .npz file was saved in data folder     
     np.savez_compressed(save_name,
                         faceData=face_data,
                         eyeTrackData=eye_track_data)
