@@ -84,7 +84,7 @@ float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs, float stop
 		s = mean(trainError);
 
 		// stop condition
-		if (ts < stop_error) {
+		if (ts < stop_error && ts != -1) {
 			break;
 		}
 		if (verbose)
