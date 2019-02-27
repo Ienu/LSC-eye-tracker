@@ -54,9 +54,9 @@ if __name__ == '__main__':
         print ("##########[Kernel_{}]##########".format(i_kernel))
 
         loss_value_pre = 0
-        for i in range(10000):
+        for i in range(500):
             loss_value, grads_value = iterate([input_image_data, 1])
-            if i%1000 == 0:
+            if i%100 == 0:
                 print ("Iteration %d/%d, loss: %f"%(i, 500, loss_value))
                 print ("Mean grad: %f"%(np.mean(grads_value)))
                 # If the gradient vanished break the loop
