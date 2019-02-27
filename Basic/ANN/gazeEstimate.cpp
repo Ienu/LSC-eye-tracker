@@ -1,19 +1,25 @@
 /*
 	Author: Wenyu
-	Date: 2/25/2019
-	Version: 1.2
+	Date: 2/27/2019
+	Version: 1.4
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
 	v1.1: add mat release, split cpp file, add destructor
 	v1.2: add static shuffle function for data preprocessing, add time consumption
 		analysis, change the model
+	v1.3: adjust the model, add comments, add function to stop training with a specific
+		loss
+	v1.4: change opt method to rprop
 */
 
 #include "gazeEstimate.h"
 
 #include <ctime>
 #include <cmath>
+#include <iostream>
+
+using namespace std;
 
 GazeEst::GazeEst() {
 	m_train_time = -1;
@@ -32,13 +38,15 @@ void GazeEst::create() {
 	m_network->setActivationFunction(ANN_MLP::SIGMOID_SYM, 1, 1);
 	m_network->setTermCriteria(
 		TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 
-			50000, 1e-8f/*FLT_EPSILON*/));
-	m_network->setTrainMethod(ANN_MLP::BACKPROP, 0.001, 0.001);
+			1, 1e-9/*FLT_EPSILON*/));
+	m_network->setTrainMethod(ANN_MLP::RPROP, 0.001, 0.001);
 }
 
-float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs) {
+float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs, float stop_error,
+	const Mat& testInputs, const Mat& testOutputs, bool verbose) {
 	// TODO: check dims
 	// scale inputs and labels
+	srand(time(NULL));
 	Mat trainData = Mat_<float>(trainInputs.rows, trainInputs.cols);
 	Mat trainLabel = Mat_<float>(trainOutputs.rows, trainOutputs.cols);
 	for (int i = 0; i < trainInputs.rows; ++i) {
@@ -55,23 +63,51 @@ float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs) {
 		trainData,
 		ROW_SAMPLE,
 		trainLabel);
+	Mat trainPredicts = Mat_<float>(trainInputs.rows, 2);
+	Mat trainError, pre;
+	Scalar s;
+	m_network->train(tD);
+	ofstream f_train("train_loss.txt");
 
 	time_t t_start = clock();
-	m_network->train(tD);
-	m_train_time = double(clock() - t_start) / CLOCKS_PER_SEC;
+	for (int epoch = 0; epoch < 50000; epoch++) {
+		time_t start = clock();
+		m_network->train(tD, ANN_MLP::UPDATE_WEIGHTS);
+		double train_time = double(clock() - start) / CLOCKS_PER_SEC;
 
-	// test
-	Mat trainPredicts = Mat_<float>(trainInputs.rows, 2);
-	predict(trainInputs, trainPredicts);
-	Mat trainError;
-	absdiff(trainOutputs, trainPredicts, trainError);
-	Scalar s = mean(trainError);
+		// test
+		float ts = -1;
+		if (testInputs.rows == testOutputs.rows && testInputs.rows != 0) {
+			ts = predict(testInputs, pre, testOutputs);
+		}
+		
+		predict(trainInputs, trainPredicts);
+		absdiff(trainOutputs, trainPredicts, trainError);
+		s = mean(trainError);
+
+		// stop condition
+		if (ts < stop_error && ts != -1) {
+			break;
+		}
+		if (verbose)
+		{
+			cout << epoch << ":\tTrain Loss: " << s[0] 
+				<< "\tTest Loss: " << ts << "\ttime: " << train_time << endl;
+		}
+		
+		f_train << epoch << "\t" << s[0] << "\t" << ts << endl;
+	}
+	
+	m_train_time = double(clock() - t_start) / CLOCKS_PER_SEC;
+	f_train.close();
 
 	trainPredicts.release();
 	trainError.release();
 
 	trainData.release();
 	trainLabel.release();
+
+	pre.release();
 	return float(s[0]);
 }
 
@@ -104,6 +140,7 @@ float GazeEst::predict(const Mat& testInputs, Mat& testOutputs, const Mat& testL
 	m_pre_time = double(clock() - t_start) / CLOCKS_PER_SEC / testData.rows;
 
 	// rescale outputs
+	testOutputs = Mat_<float>(testInputs.rows, 2);
 	for (int i = 0; i < testInputs.rows; ++i) {
 		for (int j = 0; j < 2; ++j) {
 			testOutputs.at<float>(i, j) = predictLabel.at<float>(i, j) * y_scale[j];

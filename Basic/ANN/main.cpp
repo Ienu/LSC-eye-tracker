@@ -22,8 +22,8 @@ using namespace cv::ml;
 
 int main() {
 	// import data
-	const int amount = 400;
-	ifstream f_data("data.txt");
+	const int amount = 2976;
+	ifstream f_data("data5.txt");
 	Mat MD = Mat_<float>(amount, 14);
 	for (int index = 0; index < amount; ++index) {
 		for (int i = 0; i < 14; ++i) {
@@ -33,6 +33,8 @@ int main() {
 		}
 	}
 	f_data.close();
+
+	GazeEst::shuffle(MD, MD);
 
 	// split data into train set and test set
 	int nTrain = amount * 4 / 5;
@@ -47,19 +49,20 @@ int main() {
 	GazeEst gE;
 	gE.create();
 	
-	float trainLoss = gE.train(trainInputs, trainOutputs);
-	cout << "trainLoss = " << trainLoss << endl;
+	float trainLoss = gE.train(trainInputs, trainOutputs, 110, testInputs, testOutputs, true);
+	cout << "trainLoss = " << trainLoss << "\ttime = " << gE.getTrainTime() << endl;
+
 
 	// load model
-	// gE.load("test.xml");
+	//gE.load("total.xml");
 	Mat pre = Mat_<float>(nTest, 2);
 	float testLoss = gE.predict(testInputs, pre, testOutputs);
-	cout << "testLoss = " << testLoss << endl;
+	cout << "testLoss = " << testLoss << "\ttime = " << gE.getTestTime() << endl;
 
-	cout << pre << endl;
+	//cout << pre << endl;
 	
 	// save model
-	gE.save("test.xml");
+	gE.save("latest_model_5e110.xml");
 
 	MD.release();
 	pre.release();
