@@ -1,7 +1,7 @@
 /*
 	Author: Wenyu
-	Date: 2/26/2019
-	Version: 1.3
+	Date: 2/27/2019
+	Version: 1.4
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
@@ -10,6 +10,7 @@
 		analysis, change the model
 	v1.3: adjust the model, add comments, add function to stop training with a specific
 		loss
+	v1.4: change opt method to rprop
 */
 
 #include "gazeEstimate.h"
@@ -38,13 +39,14 @@ void GazeEst::create() {
 	m_network->setTermCriteria(
 		TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 
 			1, 1e-9/*FLT_EPSILON*/));
-	m_network->setTrainMethod(ANN_MLP::BACKPROP, 0.001, 0.001);
+	m_network->setTrainMethod(ANN_MLP::RPROP, 0.001, 0.001);
 }
 
 float GazeEst::train(const Mat& trainInputs, const Mat& trainOutputs, float stop_error,
 	const Mat& testInputs, const Mat& testOutputs, bool verbose) {
 	// TODO: check dims
 	// scale inputs and labels
+	srand(time(NULL));
 	Mat trainData = Mat_<float>(trainInputs.rows, trainInputs.cols);
 	Mat trainLabel = Mat_<float>(trainOutputs.rows, trainOutputs.cols);
 	for (int i = 0; i < trainInputs.rows; ++i) {
