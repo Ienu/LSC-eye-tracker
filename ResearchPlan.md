@@ -1,10 +1,10 @@
 ### 研究计划
 制定者：Wenyu
-时间：2019/2/21
-版本：1.1
+时间：2019/2/28
+版本：1.2
 
 ### 研究目的：
-实现实时（30Hz）远距离（1.2-1.8m）的注视点检测（屏幕注视点（显示器大小不限于1280 x 800），屏幕仍为近距离（60cm））
+实现实时（30Hz）远距离（1.2-1.8m）的注视点检测（屏幕注视点（显示器大小不限于1280 x 800），屏幕仍为近距离（60cm），精度50 pixels）
 
 ### 研究内容：
 1.	实验范式设计（数据采集范式（时间、交互形式、被试者的自由度）、仪器）
@@ -28,18 +28,27 @@
 4.	工作总结：Poster（English）每周
 
 ### 时间规划：（每周迭代向后制定一周计划）
-1. 2019/2/18 -- 2019/2/28 解决目前存在的同步问题，通过可视化等手段进行验证，使用反卷积等对第一层CNN进行分析，在其他数据集上验证模型并对比他人论文指标
+### 1. 2019/2/18 -- 2019/2/28 
+解决目前存在的同步问题，通过可视化等手段进行验证，使用反卷积等对第一层CNN进行分析，在其他数据集上验证模型并对比他人论文指标
 
-（Appearance-Based Gaze Estimation in the Wild https://ieeexplore.ieee.org/document/7299081 (Xucong Zhang et al.)，MPIIFaceGaze，角度误差）
+（[1] Appearance-Based Gaze Estimation in the Wild https://ieeexplore.ieee.org/document/7299081 (Xucong Zhang et al.)，MPIIFaceGaze，角度误差）
 
-（Visualizing and Understanding Convolutional Networks https://arxiv.org/abs/1311.2901v3 (Matthew D Zeiler et al.)）
+（[2] Visualizing and Understanding Convolutional Networks https://arxiv.org/abs/1311.2901v3 (Matthew D Zeiler et al.)）
 
 #### TODO:
 WYC: 采集程序加时间戳，匹配程序（可以考虑最小欧氏距离加阈值），可视化程序（将采集到的图像以及注视点显示出来，并标注该帧的时间误差），确定实验场地
 
 XYC: 测试多个人，将CNN第一层输出、第一层反卷积结果可视化出来，同时对应每一个epoch的训练误差和测试误差（均匀划分数据集）
 
-2. 2019/3/1 – 2019/3/7 在时间同步基础上开始大样本数据采集（固定摄像头和显示器的相对位置（这样可以切换场景，也可考虑先尝试独立场景）），使用反卷积等对其它层（全部）进行分析，在其他数据集上验证模型并对比他人论文指标
-（Eye Tracking for Everyone https://arxiv.org/abs/1606.05814 (Kyle Krafka et al.)，GazeCapture，角度误差，长度误差）
+### 2. 2019/3/1 – 2019/3/7 
+在时间同步基础上开始大样本数据采集（固定摄像头和显示器的相对位置（这样可以切换场景，也可考虑先尝试独立场景）），使用反卷积等对其它层（全部）进行分析，在其他数据集上验证模型并对比他人论文指标
+（[3] Eye Tracking for Everyone https://arxiv.org/abs/1606.05814 (Kyle Krafka et al.)，GazeCapture，角度误差，长度误差）
+#### TODO:
+WYC: 采集10000帧匹配后样本，人工进行同步性测试，（固定摄像头位置，形成实验范式），编写数据生成代码（生成.npz），并结合已有的训练代码训练出模型（.h5），下载文献[3]中数据集，阅读文献
+
+XYC: 测试多人，全部层的卷积输出，反卷积输出，将文献[1]MPIIFaceGaze的所有人数据混合后进行训练测试，对WYC的样本进行同样的分析，阅读文献[1]，对文献[3]的数据进行同样的尝试
+
+### 3. 2019/3/8 - 2019/3/14
+采集大样本，每天采集一段时间。编写代码，实时捕获鼠标点击，并验证数据采集的同步性，将其加入到可视化输出当中。人工筛选正负例样本，分别输出正负例的响应效果，在大数据集上进行测试，讨论分析误差原因和改进方法
 
  
