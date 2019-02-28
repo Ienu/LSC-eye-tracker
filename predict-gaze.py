@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-'''
+"""
     Author: Wenyu
-    Date: 2/12/2019
-    Version: 3.1
+    Date: 2/28/2019
+    Version: 3.2
+    Env: Python3.6, Keras 2.2.4
 
     Function:
     v3.1: predict from the MPIIFaceGaze dataset
-'''
+    v3.2: use argv params
+"""
 import numpy as np
 import scipy.io as sio
 import h5py
@@ -34,9 +36,9 @@ import cv2
 # TODO: The sychronization remains problem
 
 def gaze_estimate(tensor, width, height, scale):
-    '''
+    """
         estimate the gaze point from the predicted tensor
-    '''
+    """
     c = 1.0 / scale
     avg_x = 0
     avg_y = 0
@@ -60,8 +62,16 @@ def gaze_estimate(tensor, width, height, scale):
 
 
 def main():
-    file_name = 'p01.txt'
+    """
+        main function
+        argv[1]: model file, like 'model.h5'
+        argv[2]: file_list file, like 'p00.txt'
+    """
+    assert len(argv) >= 2
+    
+    file_name = argv[2]
 
+    # obtain sample amount
     amount = 0
     for index, line in enumerate(open(file_name,'r')):
         amount += 1
@@ -69,7 +79,7 @@ def main():
     print('amount = ', amount)
 
     # model = load_model(sys.argv[1])
-    model = load_model('model_MPIIFaceGaze_p01_cv_last.h5')
+    model = load_model(argv[1])
     # the size of the screen
     width = 1280
     height = 800
@@ -79,7 +89,7 @@ def main():
 
     index = 0
 
-    # 加载图像
+    # import images
     with open(file_name, 'r') as file:
         for line in file.readlines():
             index += 1
@@ -103,12 +113,8 @@ def main():
 
             (px, py) = gaze_estimate(preds[0, :, :, :], width, height, scale)
 
-            cv2.circle(image_src,
-                       (width - int(vector[1]), int(vector[2])),
-                       3, (0,0,255), 10)
-            cv2.circle(image_src,
-                       (width - int(px), int(py)),
-                       3, (255,0,0), 5)
+            cv2.circle(image_src, (width - int(vector[1]), int(vector[2])), 3, (0,0,255), 10)
+            cv2.circle(image_src, (width - int(px), int(py)), 3, (255,0,0), 5)
                            
             imageDst = cv2.resize(image_src, (1280, 720))
             cv2.imshow('dst', imageDst)
@@ -120,6 +126,7 @@ def main():
                 #f.write('%(x)d\t%(y)d' % {'x':(preds[0][0]) * 1600, \
                 #                          'y':(preds[0][1]) * 900})
                 #f.close()
+
 
 if __name__ == '__main__':
     main()
