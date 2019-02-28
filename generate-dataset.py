@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 '''
     Author: Wenyu
-    Date: 2/16/2019
-    Version: 4.2
+    Date: 2/28/2019
+    Version: 4.3
     
     Function:
     v4.0: This script tries to process MPIIFaceGaze data into npz
     Then for our model test
     v4.1: use function to structured
     v4.2: shuffle the dataset
+    v4.3: use folder, use argv arguments
 '''
 import numpy as np
 import cv2
@@ -47,8 +48,10 @@ def main():
     """
         main function
         argv[1]: dataset folder (eg: ./p00)
+        argv[2]: saved .npz dataset file name
     """
-
+    assert len(argv) >= 2, 'Not enough argument'
+    
     # change current dir to dataset folder
     dataset_folder = sys.argv[1]
     os.chdir(dataset_folder)
@@ -60,8 +63,7 @@ def main():
 
     # TODO: implement input argument like argv[1] with default value
 
-    save_name = 'data_MPIIFaceGaze_p01_test.npz'
-
+    save_name = sys.argv[2]
 
     face_size = 224
 
