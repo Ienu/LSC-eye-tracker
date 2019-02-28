@@ -23,8 +23,8 @@ python i2g_train.py <.npz data file name> <model name for saving> [<for continuo
 ```
 ## Model prediction and visualing the results
 * `predict-gaze.py` predict gaze point and display both the orginal image and gaze point with trained model .h5 and file list .txt. 
-```
   * The setting is the same as the MPIIFaceGaze data generation
+```
 python predict-gaze.py <trained model file .h5> <file list file .txt (e.g., p00.txt)>
 ```
 ## Standard
