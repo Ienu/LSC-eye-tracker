@@ -221,9 +221,10 @@ def main():
         main function
         argv[1]: data file name (.npz)
         argv[2]: model name for saving
-        argv[3]: model name for loading
+        [argv[3]]: model name for loading
     """
-    assert len(sys.argv) >= 3
+    assert len(sys.argv) >= 2, 'Not enough arguments'
+    
     # Warning
     print('################################################################')
     print('# WARNING: The Code Should Be Tested On A Small Dataset First! #')
@@ -270,27 +271,21 @@ def main():
     # loss function form should be considered
     model.compile(loss='mse', optimizer=opt, metrics=['accuracy'])
 
-    # consider EarlyStopping
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    # consider EarlyStopping [hard to use]
+    # early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
     
     hist = model.fit(x, y,
                      batch_size=batch_size,
                      epochs=epochs,
                      verbose=1,
                      shuffle=True,
-                     validation_split=0.2,
-                     callbacks=[early_stopping])
-        
-    print(hist.history)
-        
-    scores = model.evaluate(x[int(amount*9/10)+1:,], y[int(amount*9/10)+1:,])
-    print('Test loss:', scores[0], scores[1])
-    model.save('model_%s_%d.h5' % (name, ep))
+                     validation_split=0.2)
+                     #callbacks=[early_stopping])
 
     # model_index = 0
     # history.loss_plot(model_index, 'epoch')
 
-    model.save('model_%s_last.h5' % name)
+    model.save('model_%s.h5' % name)
 
 
 if __name__ == '__main__':
