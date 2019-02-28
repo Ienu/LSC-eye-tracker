@@ -21,7 +21,7 @@ python i2g_g_v1.0.py <.mat data file (v7.3)> | tee <logfile>.txt
 ```
 python i2g_train.py <.npz data file name> <model name for saving> [<for continuously training model file .h5>]
 ```
-## Model prediction and visualing the results
+## Model prediction and visualizing the results
 * `predict-gaze.py` predict gaze point and display both the orginal image and gaze point with trained model .h5 and file list .txt. 
   * The setting is the same as the MPIIFaceGaze data generation
 ```
