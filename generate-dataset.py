@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
-"""
+'''
     Author: Wenyu
-    Date: 2/28/2019
-    Version: 4.3
-    Env: Python 3.6
+    Date: 2/16/2019
+    Version: 4.2
     
     Function:
-    v4.0: This script tries to process MPIIFaceGaze data into .npz
+    v4.0: This script tries to process MPIIFaceGaze data into npz
     Then for our model test
     v4.1: use function to structured
     v4.2: shuffle the dataset
-    v4.3: use sys.argv to input parameters
-"""
+'''
 import numpy as np
 import cv2
 import time
@@ -25,11 +23,10 @@ import sys
 
 # TODO: a dataset info field should be added and save in the file as one field
 
-
 def generate_gaze_tensor(gaze_point, width, height, scale):
-    """
+    '''
         generate gaze tensor from gaze point
-    """
+    '''
     w = int(gaze_point[0])
     h = int(gaze_point[1])
     c = 1.0 / scale
@@ -49,29 +46,35 @@ def generate_gaze_tensor(gaze_point, width, height, scale):
 def main():
     """
         main function
+        argv[1]: dataset folder (eg: ./p00)
     """
+
+    # change current dir to dataset folder
+    dataset_folder = sys.argv[1]
+    os.chdir(dataset_folder)
     # Warning
     print('################################################################')
     print('# WARNING: The Code Should Be Tested On A Small Dataset First! #')
+    print('#            THIS code should run in dataset folder!           #')
     print('################################################################')
 
-    assert len(sys.argv) == 3, 'Not enough input parameters'
+    # TODO: implement input argument like argv[1] with default value
 
-    file_list = sys.argv[1]
-    save_name = sys.argv[2]
+    save_name = 'data_MPIIFaceGaze_p01_test.npz'
 
-    # TODO: should pre-calculate memory needed with type 'float32'
-    # YOLO v2 use 448 * 448, we need to consider large data training strategy
 
     face_size = 224
 
     # The width and height values are recorded in the calibration data .mat
-    width = 1280
-    height = 800
+    # p00: 1280x800
+    width = 1440
+    height = 900
 
-    # obtain the sample amount
+    # Change the file_name to use images of different people
+    file_name = 'p01.txt'
+
     amount = 0
-    for index, line in enumerate(open(file_list,'r')):
+    for index, line in enumerate(open(file_name,'r')):
         amount += 1
 
     print('amount = ', amount)
@@ -96,7 +99,6 @@ def main():
             image_src = cv2.imread(vector[0])
             # cv2.imshow('test', image_src)
             # cv2.waitKey(0)
-            
             # TODO: according to YOLO v1, HSV color space need to be tested
             image_dst = cv2.resize(image_src, (face_size, face_size))
 
@@ -122,7 +124,6 @@ def main():
                         eyeTrackData=shuffled_eye_track_data)
 
     print(time.time() - t_start)
-
 
 if __name__ == '__main__':
     main()
