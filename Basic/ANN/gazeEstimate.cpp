@@ -117,7 +117,7 @@ float ge::GazeEst::train(
 				p_avg_error.push_back(pae / e_win);
 			}
 			if (epoch >= e_win * 10 && (p_avg_error.back() >= t_avg_error.back() * 1.01
-				|| t_avg_error.back() >= t_avg_error[t_avg_error.size() - 2] * 1.01)) {
+				|| t_avg_error.back() >= t_avg_error[t_avg_error.size() - 2] * 1.0001)) {
 				break;
 			}
 		}
