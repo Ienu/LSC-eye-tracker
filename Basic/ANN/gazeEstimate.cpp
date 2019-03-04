@@ -1,18 +1,19 @@
 /*
 	Author: Wenyu
-	Date: 03/01/2019
-	Version: 1.6
+	Date: 03/04/2019
+	Version: 1.7
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
 	v1.1: add mat release, split cpp file, add destructor
 	v1.2: add static shuffle function for data preprocessing, add time consumption
-		analysis, change the model
+	analysis, change the model
 	v1.3: adjust the model, add comments, add function to stop training with a specific
-		loss
+	loss
 	v1.4: change opt method to rprop
 	v1.5: improve code with namespace and add adaptive training stop
 	v1.6: add incrementally training method
+	v1.7: add visualize method
 */
 
 #include "gazeEstimate.h"
@@ -34,15 +35,15 @@ ge::GazeEst::~GazeEst() {
 }
 
 void ge::GazeEst::create() {
-	int N = 5;
-	cv::Mat layerSizes = (cv::Mat_<int>(1, N) << 12, 50, 25, 12, 2);
+	int N = 6;
+	cv::Mat layerSizes = (cv::Mat_<int>(1, N) << 12, 50, 50, 25, 12, 2);
 	m_network = cv::ml::ANN_MLP::create();
 	m_network->setLayerSizes(layerSizes);
 	m_network->setActivationFunction(cv::ml::ANN_MLP::SIGMOID_SYM, 1, 1);
 	m_network->setTermCriteria(
 		cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 
 			1, 1e-9/*cv::FLT_EPSILON*/));
-	m_network->setTrainMethod(cv::ml::ANN_MLP::BACKPROP, 0.001, 0.001);
+	m_network->setTrainMethod(cv::ml::ANN_MLP::BACKPROP, 0.01, 0.01);
 }
 
 float ge::GazeEst::train(
@@ -341,4 +342,23 @@ void ge::GazeEst::shuffle(const cv::Mat& src, cv::Mat& dst) {
 	dst = l_dst.clone();
 	l_dst.release();
 	delete[] sIdx;
+}
+
+void ge::GazeEst::visualize(const cv::Mat& testLabel, const cv::Mat& predictLabel, int width, int height)
+{
+	assert(testLabel.rows == predictLabel.rows && testLabel.cols == 2 && predictLabel.cols == 2);
+	cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+	for (int i = 0; i < testLabel.rows; ++i) {
+		int tx = int(testLabel.at<float>(i, 0));
+		int ty = int(testLabel.at<float>(i, 1));
+		cv::circle(image, cv::Point(tx, ty), 2, cv::Scalar(0, 0, 255), 2);
+
+		int px = int(predictLabel.at<float>(i, 0));
+		int py = int(predictLabel.at<float>(i, 1));
+		cv::circle(image, cv::Point(px, py), 2, cv::Scalar(255, 0, 0), 2);
+
+		cv::line(image, cv::Point(tx, ty), cv::Point(px, py), cv::Scalar(0, 0, 0), 1);
+	}
+	cv::imshow("Visualization", image);
+	cv::waitKey(0);
 }
