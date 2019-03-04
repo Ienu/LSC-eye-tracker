@@ -1,7 +1,7 @@
 /*
 	Author: Wenyu
-	Date: 03/01/2019
-	Version: 1.6
+	Date: 03/04/2019
+	Version: 1.7
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
@@ -13,6 +13,7 @@
 	v1.4: change opt method to rprop
 	v1.5: improve code with namespace and add adaptive training stop
 	v1.6: add incrementally training method
+	v1.7: add visualize method
 */
 
 #pragma once
@@ -128,6 +129,15 @@ namespace ge {
 		@param dst: shuffled samples
 		 */
 		static void shuffle(const cv::Mat& src, cv::Mat& dst);
+
+		/** @static method for visualizing the groundtruth and prediction
+
+		@param testLabel: ground truth labels
+		@param predictLabel: predicted labels
+		@param width: screen width
+		@prarm height: screen height
+		*/
+		static void visualize(const cv::Mat& testLabel, const cv::Mat& predictLabel, int width, int height);
 	};
 
 }
