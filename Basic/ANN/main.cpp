@@ -1,7 +1,7 @@
 /*
 	Author: Wenyu
-	Date: 03/01/2019
-	Version: 1.3
+	Date: 03/04/2019
+	Version: 1.4
 	Env: Opencv 3.4 vc14, VS2015 Release x64, "gazeEstimate.h", "gazeEstimate.cpp"
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
@@ -9,6 +9,7 @@
 	v1.1: add mat release
 	v1.2: use namespace ge
 	v1.3: test incremental training method
+	v1.4: test visualizing method
 */
 
 #include <iostream>
@@ -20,8 +21,8 @@
 
 int main() {
 	// import data
-	const int amount = 6690;
-	std::ifstream f_data("data7.txt");
+	const int amount = 4896;
+	std::ifstream f_data("data10.txt");
 	cv::Mat MD = cv::Mat_<float>(amount, 14);
 	for (int index = 0; index < amount; ++index) {
 		for (int i = 0; i < 14; ++i) {
@@ -61,6 +62,13 @@ int main() {
 	cv::Mat pre = cv::Mat_<float>(nTest, 2);
 	float testLoss = gE.predict(testInputs, pre, testOutputs);
 	std::cout << "testLoss = " << testLoss << "\ttime = " << gE.getTestTime() << std::endl;
+
+	ge::GazeEst::visualize(testOutputs, pre, 1920, 1080);
+
+	//////////////////////////////////////////////////////////
+	pre = cv::Mat_<float>(nTrain, 2);
+	gE.predict(trainInputs, pre, trainOutputs);
+	ge::GazeEst::visualize(trainOutputs, pre, 1920, 1080);
 
 	//cout << pre << endl;
 	float incTrainLoss = 
