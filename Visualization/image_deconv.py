@@ -81,6 +81,7 @@ if __name__ == '__main__':
                     image_tensor = tf.convert_to_tensor(src_image)
                     Filter = filters[:,:,:,row*4+col]
                     Filter = np.reshape(Filter, (3,3,1,1))
+                    Filter = np.transpose(Filter, (1,0,2,3))
                     Filter = tf.convert_to_tensor(Filter)
                     deconv = tf.nn.conv2d_transpose(image_tensor, Filter, [1,224,224,1] ,strides=[1, 1, 1, 1], padding='SAME')
                     deconv_image = sess.run(deconv)
@@ -88,7 +89,7 @@ if __name__ == '__main__':
 
                     from_image = Image.fromarray(deconv_image.astype('uint8'))
                     image_map.paste(from_image, (col*image_size, row*image_size))   
-        path_to_save_image = './visualization/' + person + '/deconv_layer0_output.png' 
+        path_to_save_image = './visualization/' + person + '/deconv_transposed_layer0_output.png' 
         image_map.save(path_to_save_image)             
 
 
