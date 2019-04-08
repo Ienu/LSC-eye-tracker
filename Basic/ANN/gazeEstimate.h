@@ -1,7 +1,7 @@
 /*
 	Author: Wenyu
-	Date: 03/04/2019
-	Version: 1.7
+	Date: 04/08/2019
+	Version: 1.8
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
@@ -13,7 +13,8 @@
 	v1.4: change opt method to rprop
 	v1.5: improve code with namespace and add adaptive training stop
 	v1.6: add incrementally training method
-	v1.7: add visualize method
+	v1.7 [03/04/2019]: add visualize method
+	v1.8 [04/08/2019]: add random trees regression
 */
 
 #pragma once
@@ -23,7 +24,13 @@
 namespace ge {
 	class GazeEst {
 	private:
+		int m_type;
+
 		cv::Ptr<cv::ml::ANN_MLP> m_network;
+
+		cv::Ptr<cv::ml::RTrees> m_rtrees_x;
+		cv::Ptr<cv::ml::RTrees> m_rtrees_y;
+
 		const float PI = 3.1415926f;
 		const float x_scale[12] =
 		{
@@ -43,8 +50,11 @@ namespace ge {
 
 	public:
 
-		/** @init the model for ANN */
-		GazeEst();
+		/** @init the model 
+		
+		@param type: model type, 0 for ANN, 1 for RTrees
+		 */
+		GazeEst(int type = 0);
 
 		/** @destruct the model and release memory */
 		~GazeEst();
@@ -72,6 +82,7 @@ namespace ge {
 			bool verbose = false);
 
 		/** @incrementally train the model with specific params, output the training loss
+			it cannot be used for RTrees
 
 		@param trainInputs: samples for training, each row indicates one sample
 		@param trainOutputs: sample labels for training, each row indicates one sample,	the
@@ -138,6 +149,15 @@ namespace ge {
 		@prarm height: screen height
 		*/
 		static void visualize(const cv::Mat& testLabel, const cv::Mat& predictLabel, int width, int height);
+
+		/** @static method for visualizing the groundtruth and prediction with color
+
+		@param testLabel: ground truth labels
+		@param predictLabel: predicted labels
+		@param width: screen width
+		@prarm height: screen height
+		*/
+		static void colorVisualize(const cv::Mat& testLabel, const cv::Mat& predictLabel, int width, int height);
 	};
 
 }
