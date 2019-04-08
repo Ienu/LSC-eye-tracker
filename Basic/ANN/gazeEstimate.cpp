@@ -1,7 +1,7 @@
 /*
 	Author: Wenyu
-	Date: 03/04/2019
-	Version: 1.7
+	Date: 04/08/2019
+	Version: 1.8
 	Env: Opencv 3.4 vc14, VS2015 Release x64
 	Function:
 	v1.0: process gaze data and model an ANN from 12-D inputs to 2-D screen points
@@ -13,7 +13,8 @@
 	v1.4: change opt method to rprop
 	v1.5: improve code with namespace and add adaptive training stop
 	v1.6: add incrementally training method
-	v1.7: add visualize method
+	v1.7 [03/04/2019]: add visualize method
+	v1.8 [04/08/2019]: add random trees regression
 */
 
 #include "gazeEstimate.h"
@@ -24,7 +25,8 @@
 #include <iostream>
 #include <cassert>
 
-ge::GazeEst::GazeEst() {
+ge::GazeEst::GazeEst(int type) {
+	m_type = type;
 	m_train_time = -1;
 	m_pre_time = -1;
 	m_n_samples = -1;
@@ -32,18 +34,51 @@ ge::GazeEst::GazeEst() {
 
 ge::GazeEst::~GazeEst() {
 	m_network.release();
+	m_rtrees_x.release();
+	m_rtrees_y.release();
 }
 
 void ge::GazeEst::create() {
 	int N = 6;
-	cv::Mat layerSizes = (cv::Mat_<int>(1, N) << 12, 50, 50, 25, 12, 2);
-	m_network = cv::ml::ANN_MLP::create();
-	m_network->setLayerSizes(layerSizes);
-	m_network->setActivationFunction(cv::ml::ANN_MLP::SIGMOID_SYM, 1, 1);
-	m_network->setTermCriteria(
-		cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 
-			1, 1e-9/*cv::FLT_EPSILON*/));
-	m_network->setTrainMethod(cv::ml::ANN_MLP::BACKPROP, 0.01, 0.01);
+	cv::Mat layerSizes = (cv::Mat_<int>(1, N) << 148, 300, 500, 300, 150, 2);
+	switch (m_type) {
+	case 0:
+		m_network = cv::ml::ANN_MLP::create();
+		m_network->setLayerSizes(layerSizes);
+		m_network->setActivationFunction(cv::ml::ANN_MLP::SIGMOID_SYM, 1, 1);
+		m_network->setTermCriteria(
+			cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS,
+				1, 1e-9/*cv::FLT_EPSILON*/));
+		m_network->setTrainMethod(cv::ml::ANN_MLP::BACKPROP, 0.01, 0.01);
+		break;
+	case 1:
+		m_rtrees_x = cv::ml::RTrees::create();
+		m_rtrees_x->setMaxDepth(100); // set possible depth of the tree
+		m_rtrees_x->setMinSampleCount(10); // set minimal number of samples
+		m_rtrees_x->setRegressionAccuracy(1e-7); // set terminal condition
+		m_rtrees_x->setUseSurrogates(false); // set whether or not using surrogates
+		//m_rtrees->setMaxCategories(15); // set maximal number of categories
+		m_rtrees_x->setPriors(cv::Mat()); // set prior probability array
+		m_rtrees_x->setCalculateVarImportance(true); // set whether or not calculate variable importance
+		m_rtrees_x->setActiveVarCount(10); // set node feature subset size 
+		m_rtrees_x->setTermCriteria(
+			cv::TermCriteria(cv::TermCriteria::MAX_ITER + 
+			(0.01f > 0 ? cv::TermCriteria::EPS : 0), 100, 1e-7));
+
+		m_rtrees_y = cv::ml::RTrees::create();
+		m_rtrees_y->setMaxDepth(100); // set possible depth of the tree
+		m_rtrees_y->setMinSampleCount(10); // set minimal number of samples
+		m_rtrees_y->setRegressionAccuracy(1e-7); // set terminal condition
+		m_rtrees_y->setUseSurrogates(false); // set whether or not using surrogates
+											//m_rtrees->setMaxCategories(15); // set maximal number of categories
+		m_rtrees_y->setPriors(cv::Mat()); // set prior probability array
+		m_rtrees_y->setCalculateVarImportance(true); // set whether or not calculate variable importance
+		m_rtrees_y->setActiveVarCount(10); // set node feature subset size 
+		m_rtrees_y->setTermCriteria(
+			cv::TermCriteria(cv::TermCriteria::MAX_ITER +
+			(0.01f > 0 ? cv::TermCriteria::EPS : 0), 100, 1e-7));
+		break;
+	}
 }
 
 float ge::GazeEst::train(
@@ -55,9 +90,7 @@ float ge::GazeEst::train(
 	bool verbose) 
 {
 	assert(trainInputs.rows > 0
-		&& trainInputs.rows == trainOutputs.rows
-		&& trainInputs.cols == 12
-		&& trainOutputs.cols == 2);
+		&& trainInputs.rows == trainOutputs.rows);
 
 	// scale inputs and labels
 	std::srand((unsigned int)time(NULL));
@@ -65,23 +98,51 @@ float ge::GazeEst::train(
 	cv::Mat trainLabel = cv::Mat_<float>(trainOutputs.rows, trainOutputs.cols);
 	for (int i = 0; i < trainInputs.rows; ++i) {
 		for (int j = 0; j < trainInputs.cols; ++j) {
-			trainData.at<float>(i, j) = trainInputs.at<float>(i, j) / x_scale[j];
+			trainData.at<float>(i, j) = trainInputs.at<float>(i, j);// / x_scale[j];
 		}
 		for (int k = 0; k < trainOutputs.cols; ++k) {
-			trainLabel.at<float>(i, k) = trainOutputs.at<float>(i, k) / y_scale[k];
+			trainLabel.at<float>(i, k) = trainOutputs.at<float>(i, k);// / y_scale[k];
 		}
 	}
 	m_n_samples += trainData.rows;
 
 	// train
+	// whole data
 	cv::Ptr<cv::ml::TrainData> tD = cv::ml::TrainData::create(
 		trainData,
 		cv::ml::ROW_SAMPLE,
 		trainLabel);
+	// x data
+	cv::Ptr<cv::ml::TrainData> tD_x = cv::ml::TrainData::create(
+		trainData,
+		cv::ml::ROW_SAMPLE,
+		trainLabel.colRange(0, 1));
+	// y data
+	cv::Ptr<cv::ml::TrainData> tD_y = cv::ml::TrainData::create(
+		trainData,
+		cv::ml::ROW_SAMPLE,
+		trainLabel.colRange(1, 2));
+
+	// whole label
 	cv::Mat trainPredicts = cv::Mat_<float>(trainInputs.rows, 2);
+	// x label
+	cv::Mat trainPredict_x = cv::Mat_<float>(trainInputs.rows, 1);
+	// y label
+	cv::Mat trainPredict_y = cv::Mat_<float>(trainInputs.rows, 1);
+
+
 	cv::Mat trainError, pre;
 	cv::Scalar s;
-	m_network->train(tD);
+	switch (m_type) {
+	case 0:
+		m_network->train(tD);
+		break;
+	case 1:
+		m_rtrees_x->train(tD_x);
+		m_rtrees_y->train(tD_y);
+		break;
+	}
+	
 	std::ofstream f_train("train_loss.txt");
 
 	std::vector<float> t_error;
@@ -91,56 +152,67 @@ float ge::GazeEst::train(
 	std::vector<float> p_avg_error;
 
 	std::time_t t_start = std::clock();
-	for (int epoch = 0; epoch < 50000; epoch++) {
-		std::time_t start = std::clock();
-		m_network->train(tD, cv::ml::ANN_MLP::UPDATE_WEIGHTS);
-		double train_time = double(std::clock() - start) / CLOCKS_PER_SEC;
+	switch (m_type) {
+	case 0:
+		for (int epoch = 0; epoch < 50000; epoch++) {
+			std::time_t start = std::clock();
+			m_network->train(tD, cv::ml::ANN_MLP::UPDATE_WEIGHTS);
+			double train_time = double(std::clock() - start) / CLOCKS_PER_SEC;
 
-		// test
-		float ts = -1;
-		if (testInputs.rows == testOutputs.rows && testInputs.rows != 0) {
-			assert(testInputs.cols == 12 && testOutputs.cols == 2);
-			ts = predict(testInputs, pre, testOutputs);
+			// test
+			float ts = -1;
+			if (testInputs.rows == testOutputs.rows && testInputs.rows != 0) {
+				ts = predict(testInputs, pre, testOutputs);
+			}
+
+			predict(trainInputs, trainPredicts);
+			cv::absdiff(trainOutputs, trainPredicts, trainError);
+			s = cv::mean(trainError);
+
+			// stop condition
+			if (ts < stopError && stopError != -1) {
+				break;
+			}
+			// adaptive training
+			else if (stopError == -1) {
+				const int e_win = 10;
+				t_error.push_back(float(s[0]));
+				p_error.push_back(ts);
+				if (epoch >= e_win - 1) {
+					float tae = 0;
+					float pae = 0;
+					for (int eIdx = epoch - e_win + 1; eIdx <= epoch; ++eIdx) {
+						tae += t_error[eIdx];
+						pae += p_error[eIdx];
+					}
+					t_avg_error.push_back(tae / e_win);
+					p_avg_error.push_back(pae / e_win);
+				}
+				if (epoch >= e_win * 10 && (p_avg_error.back() >= t_avg_error.back() * 1.01
+					|| t_avg_error.back() >= t_avg_error[t_avg_error.size() - 2] * 1.0001)) {
+					break;
+				}
+			}
+
+			if (verbose) {
+				std::cout << epoch << ":\tTrain Loss: " << s[0]
+					<< "\tTest Loss: " << ts << "\ttime: " << train_time << std::endl;
+			}
+
+			f_train << epoch << "\t" << s[0] << "\t" << ts << std::endl;
 		}
-		
+		break;
+	case 1:
+		m_rtrees_x->train(tD_x);
+		m_rtrees_y->train(tD_y);
+
 		predict(trainInputs, trainPredicts);
 		cv::absdiff(trainOutputs, trainPredicts, trainError);
 		s = cv::mean(trainError);
 
-		// stop condition
-		if (ts < stopError && stopError != -1) {
-			break;
-		}
-		// adaptive training
-		else if (stopError == -1) {
-			const int e_win = 10;
-			t_error.push_back(float(s[0]));
-			p_error.push_back(ts);
-			if (epoch >= e_win - 1) {
-				float tae = 0;
-				float pae = 0;
-				for (int eIdx = epoch - e_win + 1; eIdx <= epoch; ++eIdx) {
-					tae += t_error[eIdx];
-					pae += p_error[eIdx];
-				}
-				t_avg_error.push_back(tae / e_win);
-				p_avg_error.push_back(pae / e_win);
-			}
-			if (epoch >= e_win * 10 && (p_avg_error.back() >= t_avg_error.back() * 1.01
-				|| t_avg_error.back() >= t_avg_error[t_avg_error.size() - 2] * 1.0001)) {
-				break;
-			}
-		}
-
-		if (verbose)
-		{
-			std::cout << epoch << ":\tTrain Loss: " << s[0] 
-				<< "\tTest Loss: " << ts << "\ttime: " << train_time << std::endl;
-		}
-		
-		f_train << epoch << "\t" << s[0] << "\t" << ts << std::endl;
+		break;
 	}
-	
+
 	m_train_time = double(std::clock() - t_start) / CLOCKS_PER_SEC;
 	f_train.close();
 
@@ -163,19 +235,17 @@ float ge::GazeEst::incTrain(
 	bool verbose) 
 {
 	assert(trainInputs.rows > 0
-		&& trainInputs.rows == trainOutputs.rows
-		&& trainInputs.cols == 12
-		&& trainOutputs.cols == 2);
+		&& trainInputs.rows == trainOutputs.rows);
 
 	// scale inputs and labels
 	cv::Mat trainData = cv::Mat_<float>(trainInputs.rows, trainInputs.cols);
 	cv::Mat trainLabel = cv::Mat_<float>(trainOutputs.rows, trainOutputs.cols);
 	for (int i = 0; i < trainInputs.rows; ++i) {
 		for (int j = 0; j < trainInputs.cols; ++j) {
-			trainData.at<float>(i, j) = trainInputs.at<float>(i, j) / x_scale[j];
+			trainData.at<float>(i, j) = trainInputs.at<float>(i, j);// / x_scale[j];
 		}
 		for (int k = 0; k < trainOutputs.cols; ++k) {
-			trainLabel.at<float>(i, k) = trainOutputs.at<float>(i, k) / y_scale[k];
+			trainLabel.at<float>(i, k) = trainOutputs.at<float>(i, k);// / y_scale[k];
 		}
 	}
 
@@ -205,13 +275,20 @@ float ge::GazeEst::incTrain(
 	std::time_t t_start = std::clock();
 	for (int epoch = 0; epoch < train_epochs; epoch++) {
 		std::time_t start = std::clock();
-		m_network->train(tD, cv::ml::ANN_MLP::UPDATE_WEIGHTS);
+		switch (m_type) {
+		case 0:
+			m_network->train(tD, cv::ml::ANN_MLP::UPDATE_WEIGHTS);
+			break;
+		case 1:
+			std::cerr << "No incremental train for random trees" << std::endl;
+			exit(0);
+			break;
+		}
 		double train_time = double(std::clock() - start) / CLOCKS_PER_SEC;
 
 		// test
 		float ts = -1;
 		if (testInputs.rows == testOutputs.rows && testInputs.rows != 0) {
-			assert(testInputs.cols == 12 && testOutputs.cols == 2);
 			ts = predict(testInputs, pre, testOutputs);
 		}
 
@@ -252,46 +329,91 @@ unsigned int ge::GazeEst::getNumTrained() {
 }
 
 void ge::GazeEst::load(const char* fileName, int nSamples) {
-	m_network = cv::ml::ANN_MLP::load(fileName);
+	switch (m_type) {
+	case 0:
+		m_network = cv::ml::ANN_MLP::load(fileName);
+		break;
+	case 1:
+		char str_x[100] = "x_";
+		char str_y[100] = "y_";
+		strcat(str_x, fileName);
+		strcat(str_y, fileName);
+		m_rtrees_x = cv::ml::RTrees::load(str_x);
+		m_rtrees_y = cv::ml::RTrees::load(str_y);
+		break;
+	}
 	m_n_samples = nSamples;
 }
 
 void ge::GazeEst::save(const char* fileName) {
-	m_network->save(fileName);
+	switch (m_type) {
+	case 0:
+		m_network->save(fileName);
+		break;
+	case 1:
+		char str_x[100] = "x_";
+		char str_y[100] = "y_";
+		strcat(str_x, fileName);
+		strcat(str_y, fileName);
+		m_rtrees_x->save(str_x);
+		m_rtrees_y->save(str_y);
+		break;
+	}
 }
 
 float ge::GazeEst::predict(
 	const cv::Mat& testInputs, 
 	cv::Mat& testOutputs, 
 	const cv::Mat& testLabels) {
-	assert(testInputs.rows == testOutputs.rows 
-		&& testInputs.cols == 12 
-		&& testOutputs.cols == 2);
+	assert(testInputs.rows == testOutputs.rows);
 
 	// scale inputs
 	cv::Mat testData = cv::Mat_<float>(testInputs.rows, testInputs.cols);
 	for (int i = 0; i < testInputs.rows; ++i) {
 		for (int j = 0; j < testInputs.cols; ++j) {
-			testData.at<float>(i, j) = testInputs.at<float>(i, j) / x_scale[j];
+			testData.at<float>(i, j) = testInputs.at<float>(i, j);// / x_scale[j];
 		}
 	}
-	// predict
+	// predict whole
 	cv::Mat predictLabel;
+	// predict x
+	cv::Mat predictLabel_x;
+	// predict y
+	cv::Mat predictLabel_y;
 
 	std::time_t t_start = std::clock();
-	m_network->predict(testData, predictLabel);
+	switch (m_type) {
+	case 0:
+		m_network->predict(testData, predictLabel);
+		break;
+	case 1:
+		m_rtrees_x->predict(testData, predictLabel_x);
+		m_rtrees_y->predict(testData, predictLabel_y);
+		break;
+	}
+	
 	m_pre_time = double(std::clock() - t_start) / CLOCKS_PER_SEC / testData.rows;
 
 	// rescale outputs
 	testOutputs = cv::Mat_<float>(testInputs.rows, 2);
 	for (int i = 0; i < testInputs.rows; ++i) {
-		for (int j = 0; j < 2; ++j) {
-			testOutputs.at<float>(i, j) = predictLabel.at<float>(i, j) * y_scale[j];
+		switch (m_type) {
+		case 0:
+			for (int j = 0; j < 2; ++j) {
+				testOutputs.at<float>(i, j) = predictLabel.at<float>(i, j);// *y_scale[j];
+			}
+			break;
+		case 1:
+			testOutputs.at<float>(i, 0) = predictLabel_x.at<float>(i, 0);// *y_scale[0];
+			testOutputs.at<float>(i, 1) = predictLabel_y.at<float>(i, 0);// *y_scale[1];
+			break;
 		}
 	}
 
 	testData.release();
 	predictLabel.release();
+	predictLabel_x.release();
+	predictLabel_y.release();
 
 	// test
 	if (testLabels.rows == testOutputs.rows
@@ -346,7 +468,7 @@ void ge::GazeEst::shuffle(const cv::Mat& src, cv::Mat& dst) {
 
 void ge::GazeEst::visualize(const cv::Mat& testLabel, const cv::Mat& predictLabel, int width, int height)
 {
-	assert(testLabel.rows == predictLabel.rows && testLabel.cols == 2 && predictLabel.cols == 2);
+	assert(testLabel.rows == predictLabel.rows);
 	cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
 	for (int i = 0; i < testLabel.rows; ++i) {
 		int tx = int(testLabel.at<float>(i, 0));
@@ -360,5 +482,31 @@ void ge::GazeEst::visualize(const cv::Mat& testLabel, const cv::Mat& predictLabe
 		cv::line(image, cv::Point(tx, ty), cv::Point(px, py), cv::Scalar(0, 0, 0), 1);
 	}
 	cv::imshow("Visualization", image);
+	cv::waitKey(0);
+}
+
+void ge::GazeEst::colorVisualize(const cv::Mat& testLabel, const cv::Mat& predictLabel, int width, int height)
+{
+	assert(testLabel.rows == predictLabel.rows);
+	cv::Mat image(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
+	for (int i = 0; i < testLabel.rows; ++i) {
+		int tx = int(testLabel.at<float>(i, 0));
+		int ty = int(testLabel.at<float>(i, 1));
+		//cv::circle(image, cv::Point(tx, ty), 2, cv::Scalar(0, 0, 255), 2);
+
+		int px = int(predictLabel.at<float>(i, 0));
+		int py = int(predictLabel.at<float>(i, 1));
+		//cv::circle(image, cv::Point(px, py), 2, cv::Scalar(255, 0, 0), 2);
+
+		int dis2 = (tx - px) * (tx - px) + (ty - py) * (ty - py);
+		int v = sqrt(dis2);
+
+		cv::circle(image, cv::Point(tx, ty), 5, cv::Scalar(255 - (v > 255 ? 255 : v), 255, 255), 50);
+		cv::cvtColor(image, image, CV_HSV2BGR);
+
+
+		//cv::line(image, cv::Point(tx, ty), cv::Point(px, py), cv::Scalar(0, 0, 0), 1);
+	}
+	cv::imshow("Color Visualization", image);
 	cv::waitKey(0);
 }
