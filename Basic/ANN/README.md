@@ -7,9 +7,9 @@ We use conventional algorithms to obtain the feature vector, then use ANN propos
 ## Functions
 ### GazeEst
 ```
-GazeEst()
+GazeEst(int type = 0)
 ```
-init the model for ANN
+init the model, 0 for ANN, 1 for RTrees
 ### ~GazeEst
 ```
 ~GazeEst()
@@ -44,7 +44,7 @@ float incTrain(const cv::Mat& trainInputs,
                const cv::Mat& testOutputs = cv::Mat(), 
                bool verbose = false)
 ```
-incrementally train the model with specific params, output the training loss
+incrementally train the model with specific params, output the training loss, not support RTrees yet
 * trainInputs: samples for training, each row indicates one sample
 * trainOutputs: sample labels for training, each row indicates one sample, the number of rows should equal to the training samples
 * testInputs: samples for testing, ecah row indicates one sample
@@ -102,3 +102,26 @@ static void shuffle(const cv::Mat& src,
 static method for shuffling the data
 * src: original samples
 * dst: shuffled samples
+### visualize
+```
+static void visualize(const cv::Mat& testLabel, 
+                      const cv::Mat& predictLabel, 
+                      int width, 
+                      int height);
+```
+static method for visualizing the groundtruth and prediction
+* testLabel: ground truth labels
+* predictLabel: predicted labels
+* width: screen width
+* height: screen height
+```
+static void visualize(const cv::Mat& testLabel, 
+                      const cv::Mat& predictLabel, 
+                      int width, 
+                      int height);
+```
+static method for visualizing the groundtruth and prediction with color
+* testLabel: ground truth labels
+* predictLabel: predicted labels
+* width: screen width
+* height: screen height
