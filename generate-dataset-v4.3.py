@@ -73,6 +73,9 @@ def main():
     save_name = 'data_MPIIFaceGaze_all_test.npz'
     for person in os.listdir(dataset_folder):
         """Get the total number of all data"""
+        # Determine if it is a folder
+        if (os.path.isfile(os.path.abspath(os.path.join(dataset_folder, person)))):   #
+            continue
         # Change current dir to person dir
         os.chdir(os.path.abspath(os.path.join(dataset_folder, person)))
         file_name = person + '.txt'
@@ -84,13 +87,16 @@ def main():
     scale = 7
     eye_track_data = np.zeros([amount+1, scale, scale, 3], dtype='float32')
     for person in os.listdir(dataset_folder):
+        # Determine if it is a folder
+        if (os.path.isfile(os.path.abspath(os.path.join(dataset_folder, person)))):   #
+            continue
         path_to_mat_file = os.path.abspath(os.path.join(dataset_folder, person+'/Calibration/screenSize.mat'))
         # The width and height values are recorded in the calibration data .mat
         height, width = load_mat(path_to_mat_file)
         # Change current dir to person dir
         os.chdir(os.path.abspath(os.path.join(dataset_folder, person)))
         file_name = person + '.txt'
-
+        print (file_name)
         with open(file_name, 'r') as file:
             for line in file.readlines():
                 vector = line.split(' ')
