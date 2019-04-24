@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-    Author: Wenyu
-    Date: 2/11/2019
-    Version: 4.1
+    Author: insfan
+    Date: 4/24/2019
+    Version: 5.0
     
     Function:
     v4.0: This script tries to process MPIIFaceGaze data into npz
@@ -95,7 +95,7 @@ def main():
     face_size = 224
     amount = 0
     index = 0
-    save_name = 'data_MPIIFaceGaze_all_test.npz'
+    save_name = 'data_MPIIFaceGaze_faceRoi.npz'
     for person in os.listdir(dataset_folder):
         """Get the total number of all data"""
 
@@ -113,7 +113,7 @@ def main():
         # break
     print ("total number of image is: %d"%(amount))
     # Create a numpy array to contain data  
-    face_data = np.zeros([amount+1, face_size, face_size, 3], dtype='uint8')
+    # face_data = np.zeros([amount+1, face_size, face_size, 3], dtype='uint8')
     face_roi_data = np.zeros([amount + 1, face_size, face_size, 3], dtype='uint8')
     scale = 7
     eye_track_data = np.zeros([amount+1, scale, scale, 3], dtype='float32')
@@ -134,12 +134,12 @@ def main():
                 # print(vector[0], vector[1], vector[2])
                 image_src = cv2.imread(vector[0])
                 face_roi = generate_face_roi(vector[3:15], image_src)
-                cv2.imshow('test', face_roi)
-                cv2.waitKey(1)
+                # cv2.imshow('test', face_roi)
+                # cv2.waitKey(1)
                 # TODO: according to YOLO v1, HSV color space need to be tested
-                image_dst = cv2.resize(image_src, (face_size, face_size))
+                # image_dst = cv2.resize(image_src, (face_size, face_size))
                 face_roi = cv2.resize(face_roi, (face_size, face_size))
-                face_data[index, :, :, :] = image_dst
+                # face_data[index, :, :, :] = image_dst
                 face_roi_data[index, :, :, :] = face_roi
                 # TODO: according to YOLO v2, they used logistic activation to normalize
                 # maybe [0, 1] is better than [-0.5, 0.5] according to Relu
@@ -155,7 +155,7 @@ def main():
     # TODO: a data info field should be saved within   
     # .npz file was saved in data folder     
     np.savez_compressed(dataset_folder + '/' + save_name,
-                       faceData=face_data,
+                       # faceData=face_data,
                        faceRoiData=face_roi_data,
                        eyeTrackData=eye_track_data)
 
