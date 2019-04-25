@@ -10,7 +10,7 @@
     v4.1: use function to structured
     v4.2: Generate data for each person
     v4.3: Generate data from all person to one .npz file 
-	  repair read file bug by insfan at 4/24/2019
+	  [insfan][4/24/2019] repair read file bug
 '''
 import numpy as np
 import cv2
