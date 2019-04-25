@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-    Author: insfan
-    Date: 4/24/2019
-    Version: 5.0
+    Author: Wenyu
+    Date: 2/11/2019
+    Version: 4.3
     
     Function:
     v4.0: This script tries to process MPIIFaceGaze data into npz
@@ -10,7 +10,7 @@
     v4.1: use function to structured
     v4.2: Generate data for each person
     v4.3: Generate data from all person to one .npz file
-    v5.0：Generate hole img data and face_roi data from all person to one .npz file
+    v5.0[insfan][4/25/2019]：Generate hole img data and face_roi data from all person to one .npz file
 '''
 import numpy as np
 import cv2
