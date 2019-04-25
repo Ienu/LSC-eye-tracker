@@ -2,15 +2,15 @@
 '''
     Author: Wenyu
     Date: 2/11/2019
-    Version: 4.1
+    Version: 4.3
     
     Function:
     v4.0: This script tries to process MPIIFaceGaze data into npz
     Then for our model test
     v4.1: use function to structured
     v4.2: Generate data for each person
-    v4.3: Generate data from all person to one .npz file 
-	  [insfan][4/24/2019] repair read file bug
+    v4.3: Generate data from all person to one .npz file
+    v5.0[insfan][4/25/2019]：Generate hole img data and face_roi data from all person to one .npz file
 '''
 import numpy as np
 import cv2
@@ -53,7 +53,31 @@ def generate_gaze_tensor(gaze_point, width, height, scale):
                                     (h - y) / height,
                                     1.0 / (dis + 1.0)]
     return gaze_tensor
-
+def generate_face_roi(face_landmarks, src_img):
+    '''
+        generate face roi from src img based face_landmarks
+    '''
+    face_landmarks = [int(i) for i in face_landmarks]
+    # cv2.circle(src_img, (face_landmarks[0], face_landmarks[1]), 2, [255, 0, 0])
+    # cv2.imshow('landmarks', src_img)
+    center_x = (face_landmarks[0] + face_landmarks[2] + face_landmarks[4] + face_landmarks[6] + face_landmarks[8] + face_landmarks[10]) / 6
+    center_y = (face_landmarks[1] + face_landmarks[3] + face_landmarks[5] + face_landmarks[7] + face_landmarks[9] + face_landmarks[11]) / 6
+    rect_w = int((center_x - face_landmarks[0]) * 1.5)
+    # cv2.circle(src_img, (int(center_x), int(center_y)), 2, [0, 255, 0])
+    top_l_x = int(center_x - rect_w)
+    top_l_y = int(center_y - rect_w)
+    down_r_x = int(center_x + rect_w)
+    down_r_y = int(center_y + rect_w)
+    if (down_r_x > src_img.shape[1]):
+        down_r_x = src_img.shape[1]
+    if (down_r_y > src_img.shape[0]):
+        down_r_y = src_img.shape[0]
+    if (top_l_x < 0):
+        top_l_x = 0
+    if (top_l_y < 0):
+        top_l_y = 0
+    return src_img[top_l_y: down_r_y, top_l_x: down_r_x]
+        
 def main():
     """
         main function
@@ -71,25 +95,31 @@ def main():
     face_size = 224
     amount = 0
     index = 0
-    save_name = 'data_MPIIFaceGaze_all_test.npz'
+    save_name = 'data_MPIIFaceGaze_faceRoi.npz'
     for person in os.listdir(dataset_folder):
         """Get the total number of all data"""
+
+        # Change current dir to person dir
+        # os.chdir(os.path.abspath(os.path.join(dataset_folder, person)))
         # Determine if it is a folder
         if (os.path.isfile(os.path.abspath(os.path.join(dataset_folder, person)))):   #
             continue
-        # Change current dir to person dir
         os.chdir(os.path.abspath(os.path.join(dataset_folder, person)))
         file_name = person + '.txt'
+        print (file_name)
         for line in enumerate(open(file_name,'r')):
-            amount += 1 
+            amount += 1
+        # one person example
+        # break
     print ("total number of image is: %d"%(amount))
     # Create a numpy array to contain data  
-    face_data = np.zeros([amount+1, face_size, face_size, 3], dtype='uint8')
+    # face_data = np.zeros([amount+1, face_size, face_size, 3], dtype='uint8')
+    face_roi_data = np.zeros([amount + 1, face_size, face_size, 3], dtype='uint8')
     scale = 7
     eye_track_data = np.zeros([amount+1, scale, scale, 3], dtype='float32')
     for person in os.listdir(dataset_folder):
         # Determine if it is a folder
-        if (os.path.isfile(os.path.abspath(os.path.join(dataset_folder, person)))):   #
+        if (os.path.isfile(os.path.abspath(os.path.join(dataset_folder, person))) ):  #
             continue
         path_to_mat_file = os.path.abspath(os.path.join(dataset_folder, person+'/Calibration/screenSize.mat'))
         # The width and height values are recorded in the calibration data .mat
@@ -103,12 +133,14 @@ def main():
                 vector = line.split(' ')
                 # print(vector[0], vector[1], vector[2])
                 image_src = cv2.imread(vector[0])
-                # cv2.imshow('test', image_src)
-                # cv2.waitKey(0)
+                face_roi = generate_face_roi(vector[3:15], image_src)
+                # cv2.imshow('test', face_roi)
+                # cv2.waitKey(1)
                 # TODO: according to YOLO v1, HSV color space need to be tested
-                image_dst = cv2.resize(image_src, (face_size, face_size))
-
-                face_data[index, :, :, :] = image_dst
+                # image_dst = cv2.resize(image_src, (face_size, face_size))
+                face_roi = cv2.resize(face_roi, (face_size, face_size))
+                # face_data[index, :, :, :] = image_dst
+                face_roi_data[index, :, :, :] = face_roi
                 # TODO: according to YOLO v2, they used logistic activation to normalize
                 # maybe [0, 1] is better than [-0.5, 0.5] according to Relu
                 eye_track_data[index, :, :, :] = generate_gaze_tensor(vector[1:3],
@@ -116,13 +148,16 @@ def main():
                                                                     height,
                                                                     scale)
                 index += 1
-        print (index)
-          
+        print(index)
+        # one person example
+        # break
+    print('index', index)
     # TODO: a data info field should be saved within   
     # .npz file was saved in data folder     
     np.savez_compressed(dataset_folder + '/' + save_name,
-                        faceData=face_data,
-                        eyeTrackData=eye_track_data)
+                       # faceData=face_data,
+                       faceRoiData=face_roi_data,
+                       eyeTrackData=eye_track_data)
 
 if __name__ == '__main__':
     main()
