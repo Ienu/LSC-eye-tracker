@@ -9,7 +9,8 @@
     Then for our model test
     v4.1: use function to structured
     v4.2: Generate data for each person
-    v4.3: Generate data from all person to one .npz file
+    v4.3: Generate data from all person to one .npz file 
+	  repair read file bug by insfan
 '''
 import numpy as np
 import cv2
