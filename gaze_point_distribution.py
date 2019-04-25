@@ -2,14 +2,10 @@
 '''
     Author: Wenyu
     Date: 2/11/2019
-    Version: 4.1
+    Version: generate-data-v4.3
     
     Function:
-    v4.0: This script tries to process MPIIFaceGaze data into npz
-    Then for our model test
-    v4.1: use function to structured
-    v4.2: Generate data for each person
-    v4.3: Generate data from all person to one .npz file
+    v1.0[insfan][4/24/2019]: This script tries to process MPIIFaceGaze data gaze point distribution
 '''
 import numpy as np
 import cv2
